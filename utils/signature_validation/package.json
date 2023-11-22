@@ -1,0 +1,8 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@types/elliptic": "^6.4.17",
+    "canonicalize": "^2.0.0",
+    "elliptic": "^6.5.4"
+  }
+}
