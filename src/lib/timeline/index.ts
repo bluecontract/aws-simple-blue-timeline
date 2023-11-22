@@ -9,6 +9,7 @@ export interface TimelineEntry<T = object> {
     timelinePrev?: string
     thread?: string
     threadPrev?: string
+    lastEntryId?: string
 }
 
 export interface InitialTimelineEntry extends TimelineEntry<TimelineInitialMessage> {

@@ -3,14 +3,10 @@ import { send, SUCCESS, FAILED } from 'cfn-response-async';
 import { SSMClient, DeleteParameterCommand, PutParameterCommand } from "@aws-sdk/client-ssm";
 import { generateSchnorrKeyPair, createHashFromJson, sign } from '../lib/utils/crypto.js';
 import TimelineInitialMessage from '../lib/timeline/TimelineInitialMessage.js';
-import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { InitialTimelineEntry } from '../lib/timeline';
+import { TimelineRepository } from 'lib/timeline/TimelineRepository.js';
 
-const marshallOptions = {
-    removeUndefinedValues: true
-};
-const dynamoDBClient = DynamoDBDocument.from(new DynamoDBClient(), { marshallOptions });
+const repository = new TimelineRepository(process.env.TIMELINE_ENTRIES_TABLE);
 
 const logger = new Logger();
 const ssmClient = new SSMClient();
@@ -81,18 +77,7 @@ const createTimeline = async (event, context) => {
 
         logger.debug({ message: 'Stored keys, and responseData is', responseData });
 
-        await dynamoDBClient.put({
-            TableName: process.env.TIMELINE_ENTRIES_TABLE,
-            Item: {
-                PK: initialEntry.timeline,
-                SK: `Entry:${initialEntry.id}`,
-                ID: initialEntry.id,
-                Message: JSON.stringify(initialEntry.message),
-                Created: initialEntry.created.getTime(),
-                Signature: initialEntry.signature,
-            },
-            ConditionExpression: 'attribute_not_exists(SK)'
-        });
+        await repository.putEntry(initialEntry);
 
         await send(event, context, SUCCESS, responseData);
 

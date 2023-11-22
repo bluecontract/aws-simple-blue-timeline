@@ -1,25 +1,49 @@
 import { Logger } from '@aws-lambda-powertools/logger';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
 import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 import { createHashFromJson, sign } from '../lib/utils/crypto';
 import { TimelineEntry } from 'lib/timeline';
+import { TimelineRepository } from 'lib/timeline/TimelineRepository';
+import { TimelineEntryError } from 'lib/timeline/errors';
 
 const logger = new Logger();
-const marshallOptions = {removeUndefinedValues: true};
-const dynamoDBClient = DynamoDBDocument.from(new DynamoDBClient(), {marshallOptions});
 const ssmClient = new SSMClient();
 
+const repository = new TimelineRepository(process.env.TIMELINE_ENTRIES_TABLE);
+
+interface EntryData {
+    timeline: string
+    created: Date
+    message: object
+    timelinePrev?: string
+    thread?: string
+    threadPrev?: string
+}
+
 const addEntry = async (entryRequest) => {
-    // 1. Combine data from APIGW and DDB
-    const entryData = {
-        timeline: process.env.TIMELINE_ID,
+    // 1. Prepare record
+    const entryData: EntryData = {
+        timeline: process.env.TIMELINE_ID!,
         created: new Date(),
         message: entryRequest.message,
-        ...entryRequest.timelinePrev &&  {timelinePrev: entryRequest.timelinePrev},
-        ...entryRequest.thread &&  {thread: entryRequest.thread},
-        ...entryRequest.threadPrev && {threadPrev: entryRequest.threadPrev},
     };
+
+    // 2. Assign timelinePrev
+    const timelinePrev = await repository.getLastEntryId(entryData.timeline);
+    if (entryRequest.timelinePrev && entryRequest.timelinePrev !== timelinePrev) {
+        throw new TimelineEntryError('Illegal timelinePrev value');
+    }
+    entryData.timelinePrev = timelinePrev;
+
+    // 3. Assign threadPrev
+    if (entryRequest.thread) {
+        const threadPrev = await repository.getLastEntryId(entryData.timeline, entryRequest.thread);
+        if (entryRequest.threadPrev && entryRequest.threadPrev !== threadPrev) {
+            throw new TimelineEntryError('Illegal threadPrev value');
+        }
+        entryData.thread = entryRequest.thread;
+        entryData.threadPrev = threadPrev;
+    }
+
 
     const ssmCommand = new GetParameterCommand({
       Name: process.env.KEYS_SSM_PARAMETER,
@@ -28,11 +52,11 @@ const addEntry = async (entryRequest) => {
 
     const response = await ssmClient.send(ssmCommand);
     if (!response.Parameter?.Value) {
-        throw new Error('Cannot retrieve SSM parameter')
+        throw new TimelineEntryError('Cannot retrieve SSM parameter')
     }
     const data = JSON.parse(response.Parameter.Value);
 
-    // 2. Add signature
+    // 4. Add signature
     const privateSKey = data.PrivateKey;
     const entryId = createHashFromJson(entryData);
     const entry: TimelineEntry = {
@@ -42,21 +66,7 @@ const addEntry = async (entryRequest) => {
     };
 
     // 3. Save
-    await dynamoDBClient.put({
-        TableName: process.env.TIMELINE_ENTRIES_TABLE,
-        Item: {
-            PK: entry.timeline,
-            SK: `Entry:${entry.id}`,
-            ID: entry.id,
-            ...entry.timelinePrev && { TimelinePrev: entry.timelinePrev },
-            ...entry.thread && { Thread: entry.thread },
-            ...entry.threadPrev && { ThreadPrev: entry.threadPrev },
-            Message: typeof entry.message === 'string' ? entry.message : JSON.stringify(entry.message),
-            Created: entry.created.getTime(),
-            Signature: entry.signature,
-        },
-        ConditionExpression: 'attribute_not_exists(SK)'
-    });
+    await repository.putEntry(entry);
 
     return entry;
 };
@@ -73,10 +83,17 @@ export const lambdaHandler = async (event) => {
             body: JSON.stringify(entry),
         };
 
-    } catch(error) {
+    } catch (error) {
         logger.error({
             message: `Error processing record`,
             error
         });
+        if (error instanceof TimelineEntryError) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({error: error.message}),
+            };
+        }
+        throw error;
     }
 };
