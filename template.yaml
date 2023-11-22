@@ -1,0 +1,317 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: AWS Basic Timeline
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: Timeline Configuration
+        Parameters:
+          - TimelineName
+          - LogLevel
+
+Parameters:
+  TimelineName:
+    Type: String
+    Description: Your timeline name
+  LogLevel:
+    Type: String
+    Default: DEBUG
+
+Mappings:
+  Config:
+    TimelineBlue:
+      RegistrationSNS: arn:aws:sns:eu-west-1:604151511147:bc-development-TimelineProviders
+      AccountId: "604151511147"
+
+Globals:
+  Function:
+    Runtime: nodejs18.x
+    Timeout: 60
+    MemorySize: 512
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        LOG_LEVEL: !Ref LogLevel
+        SQS_ENTRIES_BRIDGE: !Ref TimelineEntriesSQS
+        SQS_ENTRIES_BRIDGE_ARN: !GetAtt TimelineEntriesSQS.Arn
+        TIMELINE_NAME: !Ref TimelineName
+        TIMELINE_ENTRIES_TABLE: !Ref TimelineEntriesTable
+        KEYS_SSM_PARAMETER: !Sub ${AWS::StackName}-Keys
+    Layers:
+      - !Ref NodeDependencies
+    CodeUri: ./src
+
+Resources:
+  NodeDependencies:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub ${AWS::StackName}-node_modules
+      Description: Node dependencies
+      ContentUri: layer_nodejs_base
+      CompatibleRuntimes:
+        - nodejs18.x
+
+  ### DynamoDB #################################################################
+
+  TimelineEntriesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      TableClass: STANDARD
+      TableName: !Sub ${AWS::StackName}-TimelineData
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+
+  TimelineEntriesBridgeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/timelineEntryBridge
+      Handler: handlers/index.lambdaHandler
+      Environment:
+        Variables:
+          TIMELINE_ID: !GetAtt ProviderTimelineGenerator.TimelineId
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref TimelineEntriesTable
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt TimelineEntriesSQS.QueueName
+      Events:
+        DDBStream:
+          Type: DynamoDB
+          Properties:
+            BatchSize: 5
+            StartingPosition: LATEST
+            Stream: !GetAtt TimelineEntriesTable.StreamArn
+
+
+  ### API GW ###################################################################
+
+  RestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub ${AWS::StackName}-Api
+      StageName: v1
+      EndpointConfiguration: REGIONAL
+      DefinitionBody:
+        swagger: "2.0"
+        info:
+          title:
+            Ref: AWS::StackName
+          description: AWS Basic Timeline API
+        securityDefinitions:
+          api_key:
+            type: apiKey
+            name: x-api-key
+            in: header
+        x-amazon-apigateway-api-key-source: HEADER
+        schemes:
+          - https
+        x-amazon-apigateway-request-validators:
+          all:
+            validateRequestBody: true
+            validateRequestParameters: true
+        paths:
+          "/":
+            summary: Adds new entry to the Timeline
+            post:
+              x-amazon-apigateway-request-validator: all
+              consumes:
+                - "application/json"
+              produces:
+                - "application/json"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    $ref: "#/definitions/Empty"
+              security:
+                - api_key: []
+              parameters:
+                - in: body
+                  name: Object
+                  required: true
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: object
+                      thread:
+                        type: string
+                      threadPrev:
+                        type: string
+                      timelinePrev:
+                        type: string
+                    required:
+                      - message
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TimelineAddEntry.Arn}/invocations"
+                credentials: !GetAtt ApiGatewayExecutionRole.Arn
+                passthroughBehavior: when_no_match
+                responses:
+                  default:
+                    statusCode: "200"
+
+  ApiGatewayExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+      Policies:
+        - PolicyName: ApiGatewayLambdaPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: !GetAtt TimelineAddEntry.Arn
+
+  ### Create Timeline Entry Lambda ###
+  TimelineAddEntry:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/timelineAddEntry
+      Handler: handlers/index.lambdaHandler
+      Environment:
+        Variables:
+          TIMELINE_ID: !GetAtt ProviderTimelineGenerator.TimelineId
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref TimelineEntriesTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref TimelineEntriesTable
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub ${AWS::StackName}-Keys
+
+  ApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: !Sub ${AWS::StackName}-ApiKey
+      Description: CloudFormation API Key V1
+      Enabled: true
+      GenerateDistinctId: false
+      StageKeys:
+        - RestApiId: !Ref RestApi
+          StageName: !Ref RestApi.Stage
+
+  DefaultUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      ApiStages:
+        - ApiId: !Ref RestApi
+          Stage: !Ref RestApi.Stage
+      Description: '999,999 calls per day'
+      Quota:
+        Limit: 999999
+        Period: DAY
+      Throttle:
+        BurstLimit: 150
+        RateLimit: 100
+
+  DefaultUsagePlanAssociation:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref ApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref DefaultUsagePlan
+
+  ### SQS ###
+
+  TimelineEntriesSQSPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref TimelineEntriesSQS
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub
+                - "arn:aws:iam::${AccountId}:root"
+                - AccountId: !FindInMap [Config, TimelineBlue, AccountId]
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              - sqs:GetQueueUrl
+            Resource: !GetAtt TimelineEntriesSQS.Arn
+
+  TimelineEntriesSQS:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 60
+      MessageRetentionPeriod: 86400
+      RedrivePolicy:
+        maxReceiveCount: 3
+        deadLetterTargetArn: !GetAtt TimelineEntriesDLQ.Arn
+
+  TimelineEntriesDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 345600
+
+  ### Keys ###
+  CreateTimelineFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/createTimeline
+      Handler: index.lambdaHandler
+      Policies:
+        - Statement:
+          - Effect: "Allow"
+            Action:
+              - ssm:GetParameter
+              - ssm:GetParameters
+              - ssm:GetParametersByPath
+              - ssm:PutParameter
+              - ssm:DeleteParameter
+            Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}-Keys"
+        - DynamoDBWritePolicy:
+            TableName: !Ref TimelineEntriesTable
+
+  ProviderTimelineGenerator:
+    Type: Custom::ProviderTimelineGenerator
+    Properties:
+      ServiceToken: !GetAtt CreateTimelineFunction.Arn
+
+  ProviderCreateCaller:
+    Type: Custom::ProviderCreateCaller
+    Properties:
+      ServiceToken: !FindInMap [Config, TimelineBlue, RegistrationSNS]
+      TimelineId: !GetAtt ProviderTimelineGenerator.TimelineId
+      InitialEntry: !GetAtt ProviderTimelineGenerator.InitialEntry
+
+Outputs:
+  ApiEndpoint:
+    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${RestApi.Stage}/"
+  ApiKeyId:
+    Description: ID of the API Gateway key
+    Value: !Ref ApiKey
+  TimelineId:
+    Value: !GetAtt ProviderTimelineGenerator.TimelineId
+  InitialEntry:
+    Value: !GetAtt ProviderTimelineGenerator.InitialEntry

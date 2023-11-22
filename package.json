@@ -1,0 +1,40 @@
+{
+  "name": "BC-Client",
+  "version": "1.0.0",
+  "files": [
+    "dist/"
+  ],
+  "description": "Bluecontract Client Timeline Provider",
+  "scripts": {
+    "test": "mocha tests/unit/",
+    "ts-node": "ts-node"
+  },
+  "devDependencies": {
+    "@aws-lambda-powertools/logger": "^1.14.0",
+    "@aws-sdk/client-dynamodb": "^3.421.0",
+    "@aws-sdk/client-sqs": "^3.425.0",
+    "@aws-sdk/client-ssm": "^3.427.0",
+    "@aws-sdk/lib-dynamodb": "^3.421.0",
+    "@aws-sdk/types": "^3.433.0",
+    "@types/elliptic": "^6.4.16",
+    "@types/node": "^20.8.9",
+    "@typescript-eslint/eslint-plugin": "^6.9.0",
+    "@typescript-eslint/parser": "^6.9.0",
+    "axios": ">=0.21.1",
+    "canonicalize": "^2.0.0",
+    "cfn-response": "^1.0.1",
+    "cfn-response-async": "^1.0.0",
+    "chai": "^4.3.6",
+    "elliptic": "^6.5.4",
+    "esbuild": "^0.19.5",
+    "esbuild-copy-static-files": "^0.1.0",
+    "eslint": "^8.47.0",
+    "mocha": "^10.1.0",
+    "nanoid": "^4.0.2",
+    "node-gyp-build": "^4.6.0",
+    "object-sizeof": "^2.6.3",
+    "secp256k1": "^5.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
+  }
+}

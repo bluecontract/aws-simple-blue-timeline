@@ -1,0 +1,12 @@
+version = 0.1
+
+[dev.deploy.parameters]
+stack_name = "SimpleBlueTimeline"
+region = "eu-west-1"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = [
+    "EnvironmentName=dev",
+    "LogLevel=DEBUG",
+    "TimelineName=MyTimeline"
+]
+

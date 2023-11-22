@@ -1,0 +1,16 @@
+{
+  "name": "BC-Client-NodeLibLayerBase",
+  "version": "1.0.0",
+  "description": "Bluecontract Client Base Node Layer for all Lambda Functions",
+  "dependencies": {
+    "@aws-lambda-powertools/logger": "^1.14.0",
+    "@aws-sdk/client-dynamodb": "^3.421.0",
+    "@aws-sdk/client-sqs": "^3.425.0",
+    "@aws-sdk/client-ssm": "^3.427.0",
+    "@aws-sdk/lib-dynamodb": "^3.421.0",
+    "canonicalize": "^2.0.0",
+    "cfn-response-async": "^1.0.0",
+    "elliptic": "^6.5.4",
+    "object-sizeof": "^2.6.3"
+  }
+}
