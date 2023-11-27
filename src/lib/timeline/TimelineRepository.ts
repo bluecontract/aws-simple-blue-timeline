@@ -30,6 +30,7 @@ export class TimelineRepository {
                         ...entry.timelinePrev && { TimelinePrev: entry.timelinePrev },
                         ...entry.thread && { Thread: entry.thread },
                         ...entry.threadPrev && { ThreadPrev: entry.threadPrev },
+                        ...entry.trackingId && { TrackingId: entry.trackingId },
                         Message: JSON.stringify(entry.message),
                         Created: entry.created.getTime(),
                         Signature: entry.signature,

@@ -52,6 +52,7 @@ const processRecords = async (records) => {
             ...ddbItem.TimelinePrev && { timelinePrev: ddbItem.TimelinePrev },
             ...ddbItem.Thread && { thread: ddbItem.Thread },
             ...ddbItem.ThreadPrev && { threadPrev: ddbItem.ThreadPrev },
+            ...ddbItem.TrackingId && { trackingId: ddbItem.TrackingId },
         };
 
         logger.debug({message: '--item--', item})

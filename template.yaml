@@ -155,6 +155,8 @@ Resources:
                         type: string
                       timelinePrev:
                         type: string
+                      trackingId:
+                        type: string
                     required:
                       - message
               x-amazon-apigateway-integration:

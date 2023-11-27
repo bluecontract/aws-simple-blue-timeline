@@ -17,6 +17,7 @@ interface EntryData {
     timelinePrev?: string
     thread?: string
     threadPrev?: string
+    trackingId?: string
 }
 
 const addEntry = async (entryRequest) => {
@@ -25,6 +26,7 @@ const addEntry = async (entryRequest) => {
         timeline: process.env.TIMELINE_ID!,
         created: new Date(),
         message: entryRequest.message,
+        ...entryRequest.trackingId && {trackingId: entryRequest.trackingId},
     };
 
     // 2. Assign timelinePrev
