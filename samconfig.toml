@@ -3,7 +3,7 @@ version = 0.1
 [dev.deploy.parameters]
 stack_name = "SimpleBlueTimeline"
 region = "eu-west-1"
-capabilities = "CAPABILITY_IAM"
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
 parameter_overrides = [
     "EnvironmentName=dev",
     "LogLevel=DEBUG",

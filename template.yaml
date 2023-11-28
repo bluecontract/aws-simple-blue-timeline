@@ -307,12 +307,41 @@ Resources:
       TimelineId: !GetAtt ProviderTimelineGenerator.TimelineId
       InitialEntry: !GetAtt ProviderTimelineGenerator.InitialEntry
 
+  ApiKeyRetrieverFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/apiKeyRetriever
+      Handler: index.lambdaHandler
+      Policies:
+        - Statement:
+          - Effect: "Allow"
+            Action: apigateway:GET
+            Resource: !Sub
+              - "arn:aws:apigateway:${AWS::Region}::/apikeys/${ApiKeyId}"
+              - ApiKeyId: !Ref ApiKey
+
+  ApiKeyRetriever:
+    Type: Custom::ApiKeyRetriever
+    Properties:
+      ServiceToken: !GetAtt ApiKeyRetrieverFunction.Arn
+      ApiKeyId: !Ref ApiKey
+      Policies:
+        - Statement:
+          - Effect: "Allow"
+            Action: apigateway:GET
+            Resource: !Sub
+              - "arn:aws:apigateway:${AWS::Region}::/apikeys/${ApiKeyId}"
+              - ApiKeyId: !Ref ApiKey
+
 Outputs:
   ApiEndpoint:
     Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${RestApi.Stage}/"
   ApiKeyId:
     Description: ID of the API Gateway key
     Value: !Ref ApiKey
+  ApiKey:
+    Description: The API Gateway key
+    Value: !GetAtt ApiKeyRetriever.ApiKey
   TimelineId:
     Value: !GetAtt ProviderTimelineGenerator.TimelineId
   InitialEntry:
