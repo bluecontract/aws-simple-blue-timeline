@@ -5,6 +5,7 @@ import { generateSchnorrKeyPair, createHashFromJson, sign } from '../lib/utils/c
 import TimelineInitialMessage from '../lib/timeline/TimelineInitialMessage.js';
 import { InitialTimelineEntry } from '../lib/timeline';
 import { TimelineRepository } from 'lib/timeline/TimelineRepository.js';
+import YAML from 'yaml'
 
 const repository = new TimelineRepository(process.env.TIMELINE_ENTRIES_TABLE);
 
@@ -53,7 +54,8 @@ const createTimeline = async (event, context) => {
 
     const responseData = {
         TimelineId: timelineId,
-        InitialEntry: JSON.stringify(initialEntry),
+        InitialEntryJson: JSON.stringify(initialEntry),
+        InitialEntryYaml: YAML.stringify(initialEntry),
     };
 
     logger.debug({
@@ -67,7 +69,8 @@ const createTimeline = async (event, context) => {
             Name: process.env.KEYS_SSM_PARAMETER,
             Description: "Timeline Provider Keys",
             Value: JSON.stringify({
-                ...responseData,
+                TimelineId: timelineId,
+                InitialEntry: JSON.stringify(initialEntry),
                 PrivateKey: privateSKey,
             }),
             Type: 'SecureString',

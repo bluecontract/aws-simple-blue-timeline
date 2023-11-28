@@ -11,6 +11,7 @@
     "canonicalize": "^2.0.0",
     "cfn-response-async": "^1.0.0",
     "elliptic": "^6.5.4",
-    "object-sizeof": "^2.6.3"
+    "object-sizeof": "^2.6.3",
+    "yaml": "^2.3.4"
   }
 }

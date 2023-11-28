@@ -305,15 +305,21 @@ Resources:
     Properties:
       ServiceToken: !FindInMap [Config, TimelineBlue, RegistrationSNS]
       TimelineId: !GetAtt ProviderTimelineGenerator.TimelineId
-      InitialEntry: !GetAtt ProviderTimelineGenerator.InitialEntry
+      InitialEntry: !GetAtt ProviderTimelineGenerator.InitialEntryJson
 
 Outputs:
   ApiEndpoint:
+    Description: API address
     Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${RestApi.Stage}/"
   ApiKeyId:
     Description: ID of the API Gateway key
     Value: !Ref ApiKey
   TimelineId:
+    Description: ID of the timeline
     Value: !GetAtt ProviderTimelineGenerator.TimelineId
-  InitialEntry:
-    Value: !GetAtt ProviderTimelineGenerator.InitialEntry
+  InitialEntryJson:
+    Description: Timeline's initial entry, including signature, message, etc
+    Value: !GetAtt ProviderTimelineGenerator.InitialEntryJson
+  InitialEntryYaml:
+    Description: Timeline's initial entry in YAML format
+    Value: !GetAtt ProviderTimelineGenerator.InitialEntryYaml
