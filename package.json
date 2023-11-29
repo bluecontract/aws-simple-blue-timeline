@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "@aws-lambda-powertools/logger": "^1.14.0",
+    "@aws-sdk/client-api-gateway": "^3.461.0",
     "@aws-sdk/client-dynamodb": "^3.421.0",
     "@aws-sdk/client-sqs": "^3.425.0",
     "@aws-sdk/client-ssm": "^3.427.0",
@@ -36,8 +37,5 @@
     "secp256k1": "^5.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2"
-  },
-  "dependencies": {
-    "@aws-sdk/client-api-gateway": "^3.460.0"
   }
 }

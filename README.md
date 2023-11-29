@@ -4,7 +4,7 @@ This is a simple app (CloudFormation Stack) that sets up a Blue Timeline on your
 
 ## Set it up
 
-[![architecture diagram](docs/cloudformation-launch-stack.png)](https://eu-west-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/create/review?templateURL=https://s3.eu-west-1.amazonaws.com/bc-development-timeline-provider-cfn/aws-simple-blue-timeline.yaml&stackName=SimpleBlueTimeline)
+[![architecture diagram](docs/cloudformation-launch-stack.png)](https://eu-west-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/create/review?templateURL=https://s3.eu-west-1.amazonaws.com/bc-production-timeline-provider-cfn/aws-simple-blue-timeline.yaml&stackName=SimpleBlueTimeline)
 
 
 ## Architecture

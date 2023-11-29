@@ -4,6 +4,7 @@
   "description": "Bluecontract Client Base Node Layer for all Lambda Functions",
   "dependencies": {
     "@aws-lambda-powertools/logger": "^1.14.0",
+    "@aws-sdk/client-api-gateway": "^3.461.0",
     "@aws-sdk/client-dynamodb": "^3.421.0",
     "@aws-sdk/client-sqs": "^3.425.0",
     "@aws-sdk/client-ssm": "^3.427.0",

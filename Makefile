@@ -31,5 +31,5 @@ quick-create:
 	cd layer_nodejs_base/nodejs && npm ci && cd ../..
 	node esbuild.js
 	sam build
-	sam package --s3-bucket bc-development-timeline-provider-cfn > aws-simple-blue-timeline.yaml
-	aws s3 cp aws-simple-blue-timeline.yaml s3://bc-development-timeline-provider-cfn
+	sam package --s3-bucket bc-production-timeline-provider-cfn > aws-simple-blue-timeline.yaml
+	aws s3 cp aws-simple-blue-timeline.yaml s3://bc-production-timeline-provider-cfn
