@@ -169,6 +169,38 @@ Resources:
                   default:
                     statusCode: "200"
 
+          "/initialEntry":
+            post:
+              summary: Provides Timeline initialEntry in JSON or YAML format
+              produces:
+                - "application/json"
+                - "application/yaml"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    type: object
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${InitialEntryProviderFunction.Arn}/invocations"
+                credentials: !GetAtt ApiGatewayExecutionRole.Arn
+                passthroughBehavior: when_no_templates
+                responses:
+                  default:
+                    statusCode: "200"
+              security:
+                - api_key: []
+
+  InitialEntryProviderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/initialEntryProvider
+      Handler: index.lambdaHandler
+      Environment:
+        Variables:
+          InitialEntry: !GetAtt ProviderTimelineGenerator.InitialEntry
+
   ApiGatewayExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -189,7 +221,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - lambda:InvokeFunction
-                Resource: !GetAtt TimelineAddEntry.Arn
+                Resource:
+                 - !GetAtt TimelineAddEntry.Arn
+                 - !GetAtt InitialEntryProviderFunction.Arn
 
   ### Create Timeline Entry Lambda ###
   TimelineAddEntry:
@@ -305,7 +339,7 @@ Resources:
     Properties:
       ServiceToken: !FindInMap [Config, TimelineBlue, RegistrationSNS]
       TimelineId: !GetAtt ProviderTimelineGenerator.TimelineId
-      InitialEntry: !GetAtt ProviderTimelineGenerator.InitialEntryJson
+      InitialEntry: !GetAtt ProviderTimelineGenerator.InitialEntry
 
 Outputs:
   ApiEndpoint:
@@ -317,9 +351,3 @@ Outputs:
   TimelineId:
     Description: ID of the timeline
     Value: !GetAtt ProviderTimelineGenerator.TimelineId
-  InitialEntryJson:
-    Description: Timeline's initial entry, including signature, message, etc
-    Value: !GetAtt ProviderTimelineGenerator.InitialEntryJson
-  InitialEntryYaml:
-    Description: Timeline's initial entry in YAML format
-    Value: !GetAtt ProviderTimelineGenerator.InitialEntryYaml
