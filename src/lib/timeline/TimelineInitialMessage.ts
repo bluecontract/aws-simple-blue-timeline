@@ -10,7 +10,7 @@ export default class TimelineInitialMessage {
     constructor(data) {
         this.type = {
             name: "AWS Basic Timeline with Secp256k1 Schnorr Signature",
-            sha256: "5f7f807162fc46ca4733d293cffc60dcbfe8c247bfa33f8a2d9b420bbe1415be",
+            sha256: "23aa0524e8c55087599917f05a25fc40fc18b25e8ae1de6b81329de7501727bc",
         }
         this.name = data.name;
         this.sqs = data.sqs;
