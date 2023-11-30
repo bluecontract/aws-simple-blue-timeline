@@ -23,8 +23,8 @@ Parameters:
 Mappings:
   Config:
     TimelineBlue:
-      RegistrationSNS: arn:aws:sns:eu-west-1:604151511147:bc-development-TimelineProviders
-      AccountId: "604151511147"
+      RegistrationSNS: arn:aws:sns:eu-west-1:334557859583:bc-production-TimelineProviders
+      AccountId: "334557859583"
 
 Globals:
   Function:
@@ -170,7 +170,7 @@ Resources:
                     statusCode: "200"
 
           "/initialEntry":
-            post:
+            get:
               summary: Provides Timeline initialEntry in JSON or YAML format
               produces:
                 - "application/json"
@@ -197,9 +197,9 @@ Resources:
     Properties:
       CodeUri: dist/initialEntryProvider
       Handler: index.lambdaHandler
-      Environment:
-        Variables:
-          InitialEntry: !GetAtt ProviderTimelineGenerator.InitialEntry
+      Policies:
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub ${AWS::StackName}-Keys
 
   ApiGatewayExecutionRole:
     Type: AWS::IAM::Role
@@ -371,6 +371,9 @@ Outputs:
   ApiEndpoint:
     Description: API address
     Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${RestApi.Stage}/"
+  InitialEntryApiEndpoint:
+    Description: API url to retrieve the InitialEntry of your Timeline
+    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${RestApi.Stage}/initialEntry"
   ApiKeyId:
     Description: ID of the API Gateway key
     Value: !Ref ApiKey
