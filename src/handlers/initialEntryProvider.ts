@@ -31,7 +31,7 @@ export const lambdaHandler = async (event) => {
         // Default to YAML if the header is not set to JSON
         return {
             statusCode: 200,
-            headers: {'Content-Type': 'application/yaml'},
+            headers: {'Content-Type': 'text/yaml'},
             body: YAML.stringify(JSON.parse(InitialEntry))
         };
     }

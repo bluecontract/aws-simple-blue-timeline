@@ -174,7 +174,7 @@ Resources:
               summary: Provides Timeline initialEntry in JSON or YAML format
               produces:
                 - "application/json"
-                - "application/yaml"
+                - "text/yaml"
               responses:
                 "200":
                   description: "200 response"
@@ -189,8 +189,6 @@ Resources:
                 responses:
                   default:
                     statusCode: "200"
-              security:
-                - api_key: []
 
   InitialEntryProviderFunction:
     Type: AWS::Serverless::Function
