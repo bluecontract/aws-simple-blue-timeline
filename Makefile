@@ -17,7 +17,9 @@ build_sam:
 	sam build --config-file samconfig.toml --config-env $(SAM_ENV)
 
 test:
-	$(info Running tests - TODO)
+	$(info Running tests)
+	npm install
+	npm run test:integration
 
 deploy:
 	$(info Deploying SAM application)
