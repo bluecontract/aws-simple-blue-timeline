@@ -32,8 +32,8 @@ export const initialize = async () => {
 
   axiosConfig = {
     headers: {
-      'authorization': process.env.API_KEY,
-      'content-type': 'application/json'
+      'x-api-key:': process.env.API_KEY,
+      'content-type': 'application/json',
     }
   };
 
