@@ -10,3 +10,11 @@ parameter_overrides = [
     "TimelineName=MyTimeline"
 ]
 
+[integration-testing.deploy.parameters]
+region = "eu-west-1"
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+parameter_overrides = [
+    "EnvironmentName={{TESTING_ENV_NAME}}",
+    "LogLevel=DEBUG",
+    "TimelineName=TestTimeline"
+]
